@@ -49,13 +49,12 @@ export const AttendeeListScreen: React.FC = () => {
 
   const generateCSV = () => {
     const headers = ['Full Name', 'Company Name', 'Email', 'Phone Number', 'Interested in Future Classes', 'Check-in Time', 'Class Name'];
-    const rows = attendees.map(attendee => [
-      attendee.fullName,
+    const rows = attendees.map(attendee => [      attendee.fullName,
       attendee.companyName,
       attendee.email,
       attendee.phoneNumber,
       attendee.interestedInFutureClasses ? 'Yes' : 'No',
-      new Date(attendee.timestamp).toLocaleString(),
+      new Date(attendee.timestamp).toISOString().replace('T', ' ').split('.')[0], // Format: YYYY-MM-DD HH:mm:ss
       attendee.className
     ]);
     
