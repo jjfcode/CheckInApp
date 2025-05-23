@@ -13,5 +13,7 @@ export interface Class {
     id: string;
     name: string;
     date: string;
+    startTime: string;
+    endTime: string;
     attendees: Attendee[];
 }
