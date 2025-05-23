@@ -18,6 +18,7 @@ import { Attendee, Class } from '../types';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
+import * as FileSystem from 'expo-file-system';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,6 +28,7 @@ export const AttendeeListScreen: React.FC = () => {
   const [className, setClassName] = useState('');
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [adminCode, setAdminCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     loadAttendees();
@@ -66,18 +68,44 @@ export const AttendeeListScreen: React.FC = () => {
   const exportToCSV = async () => {
     try {
       const csvContent = generateCSV();
+      const fileName = `${className.replace(/\s+/g, '_')}_attendees.csv`;
 
       if (Platform.OS === 'web') {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `${className.replace(/\s+/g, '_')}_attendees.csv`;
+        link.download = fileName;
         link.click();
       } else {
-        await Share.share({
-          message: csvContent,
-          title: `${className} Attendees`,
-        });
+        try {
+          // Crear archivo temporal
+          const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+          await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+            encoding: FileSystem.EncodingType.UTF8
+          });
+
+          // Compartir el archivo
+          const shareResult = await Share.share({
+            url: fileUri,
+            title: `${className} Attendees`,
+            message: Platform.select({
+              ios: fileUri,
+              android: `${className} Attendees List` // Android no necesita el URI en el mensaje
+            }) || '',
+          });
+
+          // Limpiar el archivo temporal después de compartir
+          if (shareResult.action !== Share.dismissedAction) {
+            await FileSystem.deleteAsync(fileUri, { idempotent: true });
+            Alert.alert('Success', 'Data exported successfully!');
+          }
+          
+          return true;
+        } catch (error) {
+          console.error('Error sharing file:', error);
+          Alert.alert('Error', 'Failed to share file');
+          return false;
+        }
       }
 
       return true;
@@ -93,26 +121,53 @@ export const AttendeeListScreen: React.FC = () => {
   };
 
   const handleAdminSubmit = async () => {
+    if (isProcessing) return;
+    
     if (adminCode === 'admin') {
-      setShowAdminDialog(false);
-      setAdminCode('');
-
-      if (attendees.length > 0) {
-        try {
-          // Export current class data first
-          const exported = await exportToCSV();
-          if (exported) {
-            // Clear current class data
-            await AsyncStorage.removeItem('currentClass');
-            // Navigate to class setup
-            navigation.replace('ClassSetup');
-          }
-        } catch (error) {
-          console.error('Error starting new class:', error);
-          Alert.alert('Error', 'Failed to start new class');
+      setIsProcessing(true);
+      
+      try {
+        if (attendees.length > 0) {
+          // Show export confirmation
+          Alert.alert(
+            'Export Data',
+            'Do you want to export the current class data before creating a new class?',
+            [
+              {
+                text: 'No',
+                style: 'cancel',
+                onPress: async () => {
+                  await AsyncStorage.removeItem('currentClass');
+                  setShowAdminDialog(false);
+                  setAdminCode('');
+                  setIsProcessing(false);
+                  navigation.replace('ClassSetup');
+                }
+              },
+              {
+                text: 'Yes',
+                onPress: async () => {
+                  const exported = await exportToCSV();
+                  await AsyncStorage.removeItem('currentClass');
+                  setShowAdminDialog(false);
+                  setAdminCode('');
+                  setIsProcessing(false);
+                  navigation.replace('ClassSetup');
+                }
+              }
+            ]
+          );
+        } else {
+          await AsyncStorage.removeItem('currentClass');
+          setShowAdminDialog(false);
+          setAdminCode('');
+          setIsProcessing(false);
+          navigation.replace('ClassSetup');
         }
-      } else {
-        navigation.replace('ClassSetup');
+      } catch (error) {
+        console.error('Error starting new class:', error);
+        Alert.alert('Error', 'Failed to start new class');
+        setIsProcessing(false);
       }
     } else {
       Alert.alert('Error', 'Invalid admin code');
@@ -138,7 +193,10 @@ export const AttendeeListScreen: React.FC = () => {
         <Text style={styles.title}>{className}</Text>
         <Text style={styles.subtitle}>Attendees: {attendees.length}</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.exportButton} onPress={exportToCSV}>
+          <TouchableOpacity 
+            style={styles.exportButton} 
+            onPress={exportToCSV}
+          >
             <Text style={styles.exportButtonText}>Export to CSV</Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -161,7 +219,12 @@ export const AttendeeListScreen: React.FC = () => {
         visible={showAdminDialog}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowAdminDialog(false)}
+        onRequestClose={() => {
+          if (!isProcessing) {
+            setShowAdminDialog(false);
+            setAdminCode('');
+          }
+        }}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -178,22 +241,37 @@ export const AttendeeListScreen: React.FC = () => {
               autoCapitalize="none"
               autoComplete="off"
               autoCorrect={false}
+              editable={!isProcessing}
+              onSubmitEditing={handleAdminSubmit}
             />
             <View style={styles.dialogButtons}>
               <TouchableOpacity 
                 style={[styles.dialogButton, styles.cancelButton]} 
                 onPress={() => {
-                  setShowAdminDialog(false);
-                  setAdminCode('');
+                  if (!isProcessing) {
+                    setShowAdminDialog(false);
+                    setAdminCode('');
+                  }
                 }}
+                disabled={isProcessing}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[
+                  styles.cancelButtonText,
+                  isProcessing && styles.disabledText
+                ]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.dialogButton, styles.submitButton]} 
+                style={[
+                  styles.dialogButton, 
+                  styles.submitButton,
+                  isProcessing && styles.disabledButton
+                ]} 
                 onPress={handleAdminSubmit}
+                disabled={isProcessing}
               >
-                <Text style={styles.dialogButtonText}>Submit</Text>
+                <Text style={styles.dialogButtonText}>
+                  {isProcessing ? 'Processing...' : 'Submit'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -328,5 +406,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  disabledText: {
+    opacity: 0.6,
   },
 });
