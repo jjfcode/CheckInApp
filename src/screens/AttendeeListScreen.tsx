@@ -22,6 +22,8 @@ import * as FileSystem from 'expo-file-system';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+type AdminAction = 'export' | 'newClass';
+
 export const AttendeeListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -29,6 +31,7 @@ export const AttendeeListScreen: React.FC = () => {
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [adminCode, setAdminCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentAction, setCurrentAction] = useState<AdminAction>('newClass');
 
   useEffect(() => {
     loadAttendees();
@@ -115,7 +118,13 @@ export const AttendeeListScreen: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    setCurrentAction('export');
+    setShowAdminDialog(true);
+  };
+
   const handleNewClass = async () => {
+    setCurrentAction('newClass');
     setShowAdminDialog(true);
   };
 
@@ -126,46 +135,53 @@ export const AttendeeListScreen: React.FC = () => {
       setIsProcessing(true);
       
       try {
-        if (attendees.length > 0) {
-          // Show export confirmation
-          Alert.alert(
-            'Export Data',
-            'Do you want to export the current class data before creating a new class?',
-            [
-              {
-                text: 'No',
-                style: 'cancel',
-                onPress: async () => {
-                  await AsyncStorage.removeItem('currentClass');
-                  setShowAdminDialog(false);
-                  setAdminCode('');
-                  setIsProcessing(false);
-                  navigation.replace('ClassSetup');
+        if (currentAction === 'newClass') {
+          if (attendees.length > 0) {
+            // Show export confirmation
+            Alert.alert(
+              'Export Data',
+              'Do you want to export the current class data before creating a new class?',
+              [
+                {
+                  text: 'No',
+                  style: 'cancel',
+                  onPress: async () => {
+                    await AsyncStorage.removeItem('currentClass');
+                    setShowAdminDialog(false);
+                    setAdminCode('');
+                    setIsProcessing(false);
+                    navigation.replace('ClassSetup');
+                  }
+                },
+                {
+                  text: 'Yes',
+                  onPress: async () => {
+                    const exported = await exportToCSV();
+                    await AsyncStorage.removeItem('currentClass');
+                    setShowAdminDialog(false);
+                    setAdminCode('');
+                    setIsProcessing(false);
+                    navigation.replace('ClassSetup');
+                  }
                 }
-              },
-              {
-                text: 'Yes',
-                onPress: async () => {
-                  const exported = await exportToCSV();
-                  await AsyncStorage.removeItem('currentClass');
-                  setShowAdminDialog(false);
-                  setAdminCode('');
-                  setIsProcessing(false);
-                  navigation.replace('ClassSetup');
-                }
-              }
-            ]
-          );
-        } else {
-          await AsyncStorage.removeItem('currentClass');
+              ]
+            );
+          } else {
+            await AsyncStorage.removeItem('currentClass');
+            setShowAdminDialog(false);
+            setAdminCode('');
+            setIsProcessing(false);
+            navigation.replace('ClassSetup');
+          }
+        } else if (currentAction === 'export') {
+          await exportToCSV();
           setShowAdminDialog(false);
           setAdminCode('');
           setIsProcessing(false);
-          navigation.replace('ClassSetup');
         }
       } catch (error) {
-        console.error('Error starting new class:', error);
-        Alert.alert('Error', 'Failed to start new class');
+        console.error('Error processing action:', error);
+        Alert.alert('Error', `Failed to ${currentAction === 'newClass' ? 'start new class' : 'export data'}`);
         setIsProcessing(false);
       }
     } else {
@@ -191,10 +207,9 @@ export const AttendeeListScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>{className}</Text>
         <Text style={styles.subtitle}>Attendees: {attendees.length}</Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
+        <View style={styles.buttonContainer}>          <TouchableOpacity 
             style={styles.exportButton} 
-            onPress={exportToCSV}
+            onPress={handleExport}
           >
             <Text style={styles.exportButtonText}>Export to CSV</Text>
           </TouchableOpacity>
@@ -205,13 +220,16 @@ export const AttendeeListScreen: React.FC = () => {
             <Text style={styles.exportButtonText}>New Class</Text>
           </TouchableOpacity>
         </View>
-      </View>
-
-      <FlatList
+      </View>      <FlatList
         data={attendees}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListFooterComponent={() => (
+          <Text style={styles.footer}>
+            Created by JJF Code 2025 v1.0.0
+          </Text>
+        )}
       />
 
       <Modal
@@ -230,7 +248,9 @@ export const AttendeeListScreen: React.FC = () => {
           style={styles.modalContainer}
         >
           <View style={styles.dialogContainer}>
-            <Text style={styles.dialogTitle}>Admin Verification</Text>
+            <Text style={styles.dialogTitle}>
+              {currentAction === 'newClass' ? 'Admin Verification' : 'Export Verification'}
+            </Text>
             <TextInput
               style={styles.adminInput}
               placeholder="Enter admin code"
@@ -275,8 +295,7 @@ export const AttendeeListScreen: React.FC = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-    </SafeAreaView>
+      </Modal>    </SafeAreaView>
   );
 };
 
@@ -405,11 +424,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  disabledButton: {
+  },  disabledButton: {
     opacity: 0.6,
   },
   disabledText: {
     opacity: 0.6,
+  },
+  footer: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontStyle: 'italic',
   },
 });

@@ -118,8 +118,7 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.subtitle}>{className}</Text>
           )}
         </View>
-        
-        <View style={styles.form}>
+          <View style={[styles.form, { flex: 1 }]}>
           <CustomTextInput
             style={styles.input}
             placeholder="Full Name *"
@@ -187,9 +186,7 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityLabel="View attendees"
             accessibilityRole="button"
           >
-            <Text style={styles.secondaryButtonText}>View Attendees</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.secondaryButtonText}>View Attendees</Text>          </TouchableOpacity>        </View>
       </ScrollView>
     </SafeAreaView>
   );
