@@ -17,30 +17,118 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'ClassSetup'>;
 };
 
+// Custom TextInput that handles web-specific props
+const CustomTextInput = ({ style, ...props }: any) => (
+  <TextInput
+    {...props}
+    style={style}
+    {...(Platform.OS === 'web' ? {
+      autoComplete: 'off',
+      dataSet: { webkitAppearance: 'none' }
+    } : {})}
+  />
+);
+
+const TimeInput: React.FC<{
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  onPickerPress: () => void;
+}> = ({ label, value, onChangeText, placeholder, onPickerPress }) => (
+  <View style={styles.timeInput}>
+    <Text style={styles.label}>{label}</Text>
+    <View style={styles.timeInputContainer}>
+      <CustomTextInput
+        style={styles.timeInputField}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        keyboardType="numbers-and-punctuation"
+        maxLength={5}
+        accessibilityLabel={`${label} input`}
+      />
+      <TouchableOpacity
+        style={styles.timeButton}
+        onPress={onPickerPress}
+        accessibilityLabel={`Select ${label}`}
+        accessibilityRole="button"
+      >
+        <Text style={styles.timeButtonText}>🕐</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
 export const ClassSetupScreen: React.FC<Props> = ({ navigation }) => {
   const [className, setClassName] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const validateTime = (time: string) => {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    return timeRegex.test(time);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+
+  const formatTime = (input: string): string => {
+    const numbers = input.replace(/[^0-9]/g, '');
+    
+    if (numbers.length >= 4) {
+      const hours = parseInt(numbers.substring(0, 2));
+      const minutes = parseInt(numbers.substring(2, 4));
+      
+      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+    }
+    return input;
   };
+
+  const handleTimeChange = (text: string, setTime: (time: string) => void) => {
+    const cleaned = text.replace(/[^0-9:]/g, '');
+    if (cleaned.length <= 5) {
+      if (!cleaned.includes(':') && cleaned.length === 4) {
+        setTime(formatTime(cleaned));
+      } else {
+        setTime(cleaned);
+      }
+    }
+  };
+
+  const showTimePicker = (
+    title: string,
+    currentTime: string,
+    setTime: (time: string) => void,
+    defaultTimes: string[]
+  ) => {
+    Alert.alert(
+      title,
+      '',
+      [
+        ...defaultTimes.map(time => ({
+          text: time,
+          onPress: () => setTime(time)
+        })),
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
   const handleStartClass = async () => {
+    if (!className.trim()) {
+      Alert.alert('Error', 'Please enter a class name');
+      return;
+    }
+
+    const finalStartTime = formatTime(startTime) || '09:00';
+    const finalEndTime = formatTime(endTime) || '17:00';
+
     try {
       const currentClass = {
         id: Date.now().toString(),
         name: className.trim(),
         date: new Date().toISOString().split('T')[0],
-        startTime: startTime || '09:00',
-        endTime: endTime || '17:00',
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         attendees: []
       };
-
-      console.log('Saving class:', currentClass); // Debug log
       
       await AsyncStorage.setItem('currentClass', JSON.stringify(currentClass));
-      console.log('Class saved successfully'); // Debug log
-      
       navigation.replace('CheckIn');
     } catch (error) {
       console.error('Error saving class:', error);
@@ -48,59 +136,55 @@ export const ClassSetupScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  return (    <SafeAreaView style={styles.container}>
+  return (
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.formContainer}>
           <Text style={styles.title}>Class Setup</Text>
-          <TextInput
+          
+          <CustomTextInput
             style={styles.input}
             placeholder="Enter Class Name"
             value={className}
             onChangeText={setClassName}
             autoCapitalize="words"
+            accessibilityLabel="Class name input"
           />
           
           <View style={styles.timeContainer}>
-            <View style={styles.timeInput}>
-              <Text style={styles.label}>Start Time</Text>
-              <TextInput
-                style={[styles.input, styles.timeField]}
-                placeholder="09:00"
-                value={startTime}
-                onChangeText={setStartTime}
-                keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
-                maxLength={5}
-                onBlur={() => {
-                  if (startTime.length === 4 && !startTime.includes(':')) {
-                    setStartTime(startTime.slice(0, 2) + ':' + startTime.slice(2));
-                  }
-                }}
-              />
-            </View>
+            <TimeInput
+              label="Start Time"
+              value={startTime}
+              onChangeText={(text) => handleTimeChange(text, setStartTime)}
+              placeholder="09:00"
+              onPickerPress={() => showTimePicker(
+                'Select Start Time',
+                startTime,
+                setStartTime,
+                ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
+              )}
+            />
+            
+            <TimeInput
+              label="End Time"
+              value={endTime}
+              onChangeText={(text) => handleTimeChange(text, setEndTime)}
+              placeholder="17:00"
+              onPickerPress={() => showTimePicker(
+                'Select End Time',
+                endTime,
+                setEndTime,
+                ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00']
+              )}
+            />
+          </View>
 
-            <View style={styles.timeInput}>
-              <Text style={styles.label}>End Time</Text>
-              <TextInput
-                style={[styles.input, styles.timeField]}
-                placeholder="17:00"
-                value={endTime}
-                onChangeText={setEndTime}
-                keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
-                maxLength={5}
-                onBlur={() => {
-                  if (endTime.length === 4 && !endTime.includes(':')) {
-                    setEndTime(endTime.slice(0, 2) + ':' + endTime.slice(2));
-                  }
-                }}
-              />
-            </View>
-          </View>          <TouchableOpacity 
-            style={[
-              styles.button,
-              !className.trim() && styles.buttonDisabled
-            ]}
+          <TouchableOpacity
+            style={[styles.button, !className.trim() && styles.buttonDisabled]}
             onPress={handleStartClass}
             disabled={!className.trim()}
+            accessibilityLabel="Start class"
+            accessibilityRole="button"
           >
             <Text style={styles.buttonText}>Start Class</Text>
           </TouchableOpacity>
@@ -155,12 +239,36 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 5,
+    marginBottom: 8,
     marginLeft: 5,
   },
-  timeField: {
-    textAlign: 'center',
-    marginBottom: 0,
+  timeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  timeInputField: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  timeButton: {
+    width: 46,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+    borderLeftWidth: 1,
+    borderLeftColor: '#ddd',
+  },
+  timeButtonText: {
+    fontSize: 20,
   },
   button: {
     backgroundColor: '#007AFF',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +20,19 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'CheckIn'>;
 };
 
+const CustomTextInput = ({ style, ...props }: any) => (
+  <TextInput
+    {...props}
+    style={style}
+    {...(Platform.OS === 'web' ? {
+      autoComplete: 'off',
+      dataSet: { webkitAppearance: 'none' }
+    } : {})}
+  />
+);
+
 export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
+  const [className, setClassName] = useState<string>('');
   const [attendee, setAttendee] = useState<Partial<Attendee>>({
     fullName: '',
     companyName: '',
@@ -27,6 +40,22 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
     phoneNumber: '',
     interestedInFutureClasses: false,
   });
+
+  useEffect(() => {
+    const loadClassName = async () => {
+      try {
+        const classDataString = await AsyncStorage.getItem('currentClass');
+        if (classDataString) {
+          const currentClass: Class = JSON.parse(classDataString);
+          setClassName(currentClass.name);
+        }
+      } catch (error) {
+        console.error('Error loading class name:', error);
+      }
+    };
+
+    loadClassName();
+  }, []);
 
   const handleSubmit = async () => {
     if (!attendee.fullName || !attendee.email) {
@@ -76,47 +105,58 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('AttendeeList');
   };
 
+  const handleTextChange = (field: keyof Pick<Attendee, 'fullName' | 'companyName' | 'email' | 'phoneNumber'>) => (text: string) => {
+    setAttendee(prev => ({ ...prev, [field]: text }));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Check-In</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Check-In</Text>
+          {className && (
+            <Text style={styles.subtitle}>{className}</Text>
+          )}
+        </View>
         
         <View style={styles.form}>
-          <TextInput
+          <CustomTextInput
             style={styles.input}
             placeholder="Full Name *"
             value={attendee.fullName}
-            onChangeText={(text) => setAttendee({ ...attendee, fullName: text })}
+            onChangeText={handleTextChange('fullName')}
           />
 
-          <TextInput
+          <CustomTextInput
             style={styles.input}
             placeholder="Company Name"
             value={attendee.companyName}
-            onChangeText={(text) => setAttendee({ ...attendee, companyName: text })}
+            onChangeText={handleTextChange('companyName')}
           />
 
-          <TextInput
+          <CustomTextInput
             style={styles.input}
             placeholder="Email *"
             value={attendee.email}
-            onChangeText={(text) => setAttendee({ ...attendee, email: text })}
+            onChangeText={handleTextChange('email')}
             keyboardType="email-address"
             autoCapitalize="none"
           />
 
-          <TextInput
+          <CustomTextInput
             style={styles.input}
             placeholder="Phone Number"
             value={attendee.phoneNumber}
-            onChangeText={(text) => setAttendee({ ...attendee, phoneNumber: text })}
+            onChangeText={handleTextChange('phoneNumber')}
             keyboardType="phone-pad"
-          />          <TouchableOpacity 
+          />
+
+          <TouchableOpacity 
             style={styles.switchContainer}
-            onPress={() => setAttendee({ 
-              ...attendee, 
-              interestedInFutureClasses: !attendee.interestedInFutureClasses 
-            })}
+            onPress={() => setAttendee(prev => ({ 
+              ...prev, 
+              interestedInFutureClasses: !prev.interestedInFutureClasses 
+            }))}
             activeOpacity={0.7}
           >
             <Text style={styles.switchText}>Interested in future classes?</Text>
@@ -124,7 +164,7 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
               <Switch
                 value={attendee.interestedInFutureClasses}
                 onValueChange={(value) =>
-                  setAttendee({ ...attendee, interestedInFutureClasses: value })
+                  setAttendee(prev => ({ ...prev, interestedInFutureClasses: value }))
                 }
                 trackColor={{ false: '#767577', true: '#81b0ff' }}
                 thumbColor={attendee.interestedInFutureClasses ? '#007AFF' : '#f4f3f4'}
@@ -132,13 +172,20 @@ export const CheckInScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <TouchableOpacity 
+            style={styles.submitButton} 
+            onPress={handleSubmit}
+            accessibilityLabel="Complete check-in"
+            accessibilityRole="button"
+          >
             <Text style={styles.buttonText}>Complete Check-In</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.submitButton, styles.secondaryButton]} 
             onPress={viewAttendees}
+            accessibilityLabel="View attendees"
+            accessibilityRole="button"
           >
             <Text style={styles.secondaryButtonText}>View Attendees</Text>
           </TouchableOpacity>
@@ -156,12 +203,21 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
+  header: {
+    marginBottom: 30,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
+    marginBottom: 10,
     color: '#333',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   form: {
     width: '100%',
