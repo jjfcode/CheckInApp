@@ -225,11 +225,6 @@ export const AttendeeListScreen: React.FC = () => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListFooterComponent={() => (
-          <Text style={styles.footer}>
-            Created by JJF Code 2025 v1.0.0
-          </Text>
-        )}
       />
 
       <Modal
@@ -429,12 +424,5 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     opacity: 0.6,
-  },
-  footer: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
-    paddingVertical: 20,
-    fontStyle: 'italic',
   },
 });
