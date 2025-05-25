@@ -6,14 +6,16 @@ interface Props {
   children: React.ReactNode;
 }
 
-export const ScreenWrapper: React.FC<Props> = ({ children }) => (
-  <SafeAreaView style={styles.container}>
-    <View style={styles.content}>
-      {children}
+export const ScreenWrapper: React.FC<Props> = ({ children }) => {
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {children}
+      </View>
       <Footer />
-    </View>
-  </SafeAreaView>
-);
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

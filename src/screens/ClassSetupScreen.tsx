@@ -138,7 +138,8 @@ export const ClassSetupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>        <View style={[styles.formContainer, { flex: 1 }]}>
+      <View style={styles.content}>
+        <View style={[styles.formContainer, { flex: 1 }]}>
           <Text style={styles.title}>Class Setup</Text>
           
           <CustomTextInput
@@ -184,10 +185,10 @@ export const ClassSetupScreen: React.FC<Props> = ({ navigation }) => {
             disabled={!className.trim()}
             accessibilityLabel="Start class"
             accessibilityRole="button"
-          >            <Text style={styles.buttonText}>Start Class</Text>
+          >
+            <Text style={styles.buttonText}>Start Class</Text>
           </TouchableOpacity>
         </View>
-
       </View>
     </SafeAreaView>
   );

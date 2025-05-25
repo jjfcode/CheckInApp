@@ -91,9 +91,9 @@ export const AttendeeListScreen: React.FC = () => {
             url: fileUri,
             title: `${className} Attendees`,
             message: Platform.select({
-              ios: fileUri,
-              android: `${className} Attendees List` // Android no necesita el URI en el mensaje
-            }) || '',
+              ios: `${className} Attendees List`,
+              android: `${className} Attendees List`
+            }) || `${className} Attendees List`,
           });
 
           // Limpiar el archivo temporal después de compartir
@@ -193,11 +193,11 @@ export const AttendeeListScreen: React.FC = () => {
   const renderItem = ({ item }: { item: Attendee }) => (
     <View style={styles.attendeeCard}>
       <Text style={styles.name}>{item.fullName}</Text>
-      <Text style={styles.details}>{item.companyName}</Text>
+      <Text style={styles.details}>{item.companyName || ' '}</Text>
       <Text style={styles.details}>{item.email}</Text>
-      <Text style={styles.details}>{item.phoneNumber}</Text>
+      <Text style={styles.details}>{item.phoneNumber || ' '}</Text>
       <Text style={styles.interested}>
-        {item.interestedInFutureClasses ? '✓ Interested in future classes' : ''}
+        {item.interestedInFutureClasses ? '✓ Interested in future classes' : ' '}
       </Text>
     </View>
   );
@@ -207,7 +207,8 @@ export const AttendeeListScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>{className}</Text>
         <Text style={styles.subtitle}>Attendees: {attendees.length}</Text>
-        <View style={styles.buttonContainer}>          <TouchableOpacity 
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
             style={styles.exportButton} 
             onPress={handleExport}
           >
@@ -220,7 +221,8 @@ export const AttendeeListScreen: React.FC = () => {
             <Text style={styles.exportButtonText}>New Class</Text>
           </TouchableOpacity>
         </View>
-      </View>      <FlatList
+      </View>
+      <FlatList
         data={attendees}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
@@ -269,17 +271,12 @@ export const AttendeeListScreen: React.FC = () => {
                 }}
                 disabled={isProcessing}
               >
-                <Text style={[
-                  styles.cancelButtonText,
-                  isProcessing && styles.disabledText
-                ]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, isProcessing && styles.disabledText]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[
-                  styles.dialogButton, 
-                  styles.submitButton,
-                  isProcessing && styles.disabledButton
-                ]} 
+                style={[styles.dialogButton, styles.submitButton, isProcessing && styles.disabledButton]} 
                 onPress={handleAdminSubmit}
                 disabled={isProcessing}
               >
@@ -290,7 +287,8 @@ export const AttendeeListScreen: React.FC = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>    </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
