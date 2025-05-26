@@ -1,0 +1,8 @@
+ext {
+  compileSdkVersion = 34
+  targetSdkVersion = 34
+  buildToolsVersion = "34.0.0"
+  minSdkVersion = 21
+  ndkVersion = "23.1.7779620"
+  kotlinVersion = "1.7.10"
+}

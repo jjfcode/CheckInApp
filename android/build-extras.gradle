@@ -1,0 +1,17 @@
+// Adds custom configuration to the Gradle build
+allprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                compileSdkVersion 34
+                defaultConfig {
+                    targetSdkVersion 34
+                }
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_11
+                    targetCompatibility JavaVersion.VERSION_11
+                }
+            }
+        }
+    }
+}

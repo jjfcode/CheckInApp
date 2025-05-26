@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon-512x512.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,10 +20,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.juanjo73.CheckInApp",
+      "versionCode": 10,
+      "permissions": [],
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "34.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ddea9a8c-6d1d-47db-a3ab-b6dbea2ca5a7"
+      }
     }
   }
 }
