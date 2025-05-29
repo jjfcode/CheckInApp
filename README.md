@@ -87,6 +87,21 @@ npx expo start
 - On iOS, allow sharing permissions when requested
 - If export fails, try using the Debug screen (available in development mode)
 
+## Future Updates
+
+The following features are planned for upcoming releases:
+
+1. **Photo Check-In**: Capture attendee photos during the check-in process
+2. **Welcome Messages**: Automatically send welcome messages to attendees upon check-in
+3. **Company Information**: Enhanced company profile sharing between attendees
+4. **Class Completion**: Send "Thank You for Attending" messages when closing a class
+5. **Dark Mode Support**: Add theme switching for better accessibility and visual comfort
+6. **QR Code Check-In**: Allow quick check-ins by scanning a QR code
+7. **Offline Sync**: Improved offline capabilities with background synchronization
+8. **Analytics Dashboard**: Visual reports and insights about attendance patterns
+9. **Multi-language Support**: Internationalization for global audiences
+10. **Calendar Integration**: Sync with popular calendar applications
+
 ## Version History
 
 - v1.0.0 (May 2025):
