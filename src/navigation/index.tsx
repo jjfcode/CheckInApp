@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ClassSetupScreen } from '../screens/ClassSetupScreen';
 import { CheckInScreen } from '../screens/CheckInScreen';
 import { AttendeeListScreen } from '../screens/AttendeeListScreen';
+import { DebugScreen } from '../screens/DebugScreen';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -35,6 +36,11 @@ export const Navigation = () => {
         name="AttendeeList" 
         component={AttendeeListScreen}
         options={{ title: 'Attendee List' }}
+      />
+      <Stack.Screen 
+        name="Debug" 
+        component={DebugScreen}
+        options={{ title: 'Debug Tools' }}
       />
     </Stack.Navigator>
   );

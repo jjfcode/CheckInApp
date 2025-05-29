@@ -4,4 +4,5 @@ export type RootStackParamList = {
   ClassSetup: undefined;
   CheckIn: undefined;
   AttendeeList: undefined;
+  Debug: undefined;
 };

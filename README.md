@@ -14,11 +14,13 @@ A cross-platform mobile and web application built with React Native and Expo for
 ## Tech Stack
 
 - React Native
-- Expo
+- Expo (SDK 49)
 - TypeScript
 - React Navigation
 - AsyncStorage
 - Expo File System
+- Expo Build Properties
+- Expo Document Picker
 
 ## Getting Started
 
@@ -77,8 +79,27 @@ npx expo start
 - New Class Creation: Protected with admin password
 - Default admin password: "admin"
 
+## Troubleshooting
+
+### CSV Export Issues
+- Ensure your device has proper storage permissions
+- For Android 11+, use the system file picker when prompted
+- On iOS, allow sharing permissions when requested
+- If export fails, try using the Debug screen (available in development mode)
+
+## Version History
+
+- v1.0.0 (May 2025):
+  - Initial release
+  - Basic check-in functionality
+  - CSV export capability
+
 ## Created By
 
 JJF Code © 2025
 
 Version: 1.0.0
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.

@@ -116,139 +116,66 @@ export const AttendeeListScreen: React.FC = () => {
           console.error('Error in web export:', error);
           Alert.alert('Error', 'Failed to export data on web');
         }
-        return true;      } else {
+        return true;
+      } else {
         // Mobile implementation
         try {
-          console.log('[CSV Export] Starting export process for mobile');
-          console.log('[CSV Export] CSV content length:', csvContent.length);
+          console.log('Creating CSV file for mobile...');
           
           // Check if FileSystem is available
-          if (!FileSystem) {
-            console.error('[CSV Export] FileSystem is not available');
-            Alert.alert('Error', 'File system module is not available');
-            return false;
-          }
-          
-          if (!FileSystem.documentDirectory) {
-            console.error('[CSV Export] documentDirectory is not available');
-            Alert.alert('Error', 'File system directory is not accessible');
+          if (!FileSystem || !FileSystem.documentDirectory) {
+            console.error('FileSystem is not available');
+            Alert.alert('Error', 'File system is not available on this device');
             return false;
           }
 
-          console.log('[CSV Export] FileSystem is available:', FileSystem.documentDirectory);
-          
-          // Create temporary file with unique name and proper path
+          // Create temporary file with unique name
           const timestamp = new Date().getTime();
-          const fileName = `${className.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.csv`;
-          const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+          const fileUri = `${FileSystem.documentDirectory}${timestamp}_${fileName}`;
           
-          console.log(`[CSV Export] Preparing to write file: ${fileUri}`);
+          console.log(`Writing to file: ${fileUri}`);
           
-          // Write CSV content to file with error handling
-          try {
-            await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-              encoding: FileSystem.EncodingType.UTF8
-            });
-            console.log('[CSV Export] File written successfully');
-          } catch (writeError: any) {
-            console.error('[CSV Export] Error writing file:', writeError);
-            Alert.alert('Export Error', `Failed to write file: ${writeError.message || 'Unknown error'}`);
+          // Write CSV content to file
+          await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+            encoding: FileSystem.EncodingType.UTF8
+          });
+          
+          console.log('File written successfully, checking file...');
+          
+          // Verify file exists and has content
+          const fileInfo = await FileSystem.getInfoAsync(fileUri);
+          if (!fileInfo.exists || fileInfo.size === 0) {
+            console.error('File was not created successfully or is empty');
+            Alert.alert('Error', 'Failed to create export file');
             return false;
-          }          // Verify file exists and has content
-          try {
-            const fileInfo = await FileSystem.getInfoAsync(fileUri);
-            console.log(`[CSV Export] File check - exists: ${fileInfo.exists}`);
-            
-            if (!fileInfo.exists) {
-              console.error('[CSV Export] File was not created successfully');
-              Alert.alert('Error', 'Failed to create export file');
-              return false;
-            }
-            
-            if ('size' in fileInfo && typeof fileInfo.size === 'number') {
-              console.log(`[CSV Export] File size: ${fileInfo.size} bytes`);
-              if (fileInfo.size === 0) {
-                console.error('[CSV Export] File is empty');
-                Alert.alert('Error', 'Export file is empty');
-                return false;
-              }
-            }
-          } catch (checkError: any) {
-            console.error('[CSV Export] Error checking file:', checkError);
-            // Continue anyway since the file might still be usable
           }
-            // Share the file using Share API
-          try {
-            console.log(`[CSV Export] Attempting to share file: ${fileUri}`);
-            
-            // Prepare share options based on platform
-            const shareOptions = {
-              url: fileUri,
-              title: `${className} Attendees`,
-              message: Platform.OS === 'ios' 
-                ? `${className} Attendees List` 
-                : `${className} Attendees List - ${new Date().toLocaleDateString()}`,
-            };
-            
-            const dialogOptions = {
-              dialogTitle: `Share ${className} Attendees Data`,
-              subject: `${className} Attendees Data - ${new Date().toLocaleDateString()}`,
-              tintColor: '#007AFF'
-            };
-            
-            console.log('[CSV Export] Share options:', JSON.stringify(shareOptions));
-            const shareResult = await Share.share(shareOptions, dialogOptions);
+          
+          console.log(`File exists, size: ${fileInfo.size} bytes`);
+          
+          // Share the file using Share API
+          const shareResult = await Share.share({
+            url: fileUri,
+            title: `${className} Attendees`,
+            message: `${className} Attendees List`,
+          }, {
+            dialogTitle: `Share ${className} Attendees Data`,
+            subject: `${className} Attendees Data`,
+            tintColor: '#007AFF'
+          });
 
-            console.log('[CSV Export] Share result:', JSON.stringify(shareResult));
-            
-            // Clean up temporary file after sharing
-            if (shareResult.action !== Share.dismissedAction) {
-              try {
-                await FileSystem.deleteAsync(fileUri, { idempotent: true });
-                console.log('[CSV Export] Temporary file deleted successfully');
-              } catch (cleanupError: any) {
-                console.warn('[CSV Export] Failed to delete temporary file:', cleanupError?.message || cleanupError);
-                // Non-critical error, continue
-              }
-              
-              Alert.alert('Success', 'Data exported successfully!');
-            } else {
-              console.log('[CSV Export] Share dismissed, keeping temporary file');
+          console.log('Share result:', JSON.stringify(shareResult));
+          
+          // Clean up temporary file after sharing
+          if (shareResult.action !== Share.dismissedAction) {
+            try {
+              await FileSystem.deleteAsync(fileUri, { idempotent: true });
+              console.log('Temporary file deleted successfully');
+            } catch (cleanupError) {
+              console.warn('Failed to delete temporary file:', cleanupError);
+              // Non-critical error, continue
             }
-          } catch (shareError: any) {
-            console.error('[CSV Export] Error sharing file:', shareError?.message || shareError);
             
-            // If sharing fails, offer to retry or cancel
-            Alert.alert(
-              'Sharing Failed',
-              'Could not share the CSV file. Would you like to try again?',
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                  onPress: async () => {
-                    // Clean up the file
-                    try {
-                      await FileSystem.deleteAsync(fileUri, { idempotent: true });
-                    } catch (e) {} // Ignore cleanup errors
-                  }
-                },
-                {
-                  text: 'Try Again',
-                  onPress: async () => {
-                    // Try sharing again
-                    try {
-                      await Share.share({
-                        url: fileUri,
-                        title: `${className} Attendees`,
-                        message: `${className} Attendees List`,
-                      });
-                    } catch (e) {
-                      Alert.alert('Error', 'Failed to share file. Please try a different export method.');
-                    }
-                  }
-                }
-              ]            );
+            Alert.alert('Success', 'Data exported successfully!');
           }
           
           return true;
@@ -350,7 +277,8 @@ export const AttendeeListScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>      <View style={styles.header}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
         <Text style={styles.title}>{className}</Text>
         <Text style={styles.subtitle}>Attendees: {attendees.length}</Text>
         <View style={styles.buttonContainer}>
@@ -366,14 +294,6 @@ export const AttendeeListScreen: React.FC = () => {
           >
             <Text style={styles.exportButtonText}>New Class</Text>
           </TouchableOpacity>
-          {__DEV__ && (
-            <TouchableOpacity 
-              style={[styles.exportButton, {backgroundColor: '#9C27B0'}]} 
-              onPress={() => navigation.navigate('Debug')}
-            >
-              <Text style={styles.exportButtonText}>Debug</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
       <FlatList
