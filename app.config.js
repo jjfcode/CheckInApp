@@ -21,7 +21,7 @@ const config = {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },      package: "com.juanjo73.CheckInApp",
-      versionCode: 11,
+      versionCode: 12,
       permissions: [],
       compileSdkVersion: 34,
       targetSdkVersion: 34,
